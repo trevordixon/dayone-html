@@ -1,0 +1,73 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<script src="plist_parser.js"></script>
+<polymer-element name="journal-drop" attributes="message">
+  <template>
+    <style>
+      :host {
+        display: block;
+        border: 8px dashed #999;
+        border-radius: 12px;
+        margin: 50px;
+        text-align: center;
+      }
+    </style>
+
+    <div fit style="margin-top:75px" on-dragover="{{dragover}}" on-drop="{{drop}}">
+      {{message}}
+    </div>
+  </template>
+  <script>
+    Polymer('journal-drop', {
+      dragover: function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      },
+      drop: function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        var self = this;
+
+        var journal = e.dataTransfer.items[0];
+        if (!journal) return;
+        journal = journal.webkitGetAsEntry();
+        journal.getDirectory('entries', null, function(entries) {
+          var r = entries.createReader();
+          console.log('empty entries');
+          var entries = [];
+          var toRead = 0;
+          function read() {
+            r.readEntries(function(fileEntries) {
+              if (!fileEntries.length) {
+                return;
+              }
+              console.log('read some');
+              fileEntries.forEach(function(entry) {
+                entry.file(function(file) {
+                  ++toRead;
+                  var reader = new FileReader();
+                  reader.readAsBinaryString(file);
+                  reader.onloadend = function() {
+                    var entry = PlistParser.parse(reader.result);
+                    entry['Creation Date'] = new Date(entry['Creation Date']);
+                    entries.push(entry);
+                    --toRead;
+                    if (toRead === 0) {
+                      entries.sort(function(a, b) { return a['Creation Date'] - b['Creation Date']; });
+                      self.fire('entries', entries);
+                    }
+                  };
+                });
+              });
+              read();
+            });
+          }
+          read();
+        }, function(err) {
+          console.log(err);
+        });
+      },
+    });
+  </script>
+</polymer-element>
