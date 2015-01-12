@@ -47,7 +47,7 @@
                 entry.file(function(file) {
                   ++toRead;
                   var reader = new FileReader();
-                  reader.readAsBinaryString(file);
+                  reader.readAsText(file);
                   reader.onloadend = function() {
                     var entry = PlistParser.parse(reader.result);
                     entry['Creation Date'] = new Date(entry['Creation Date']);
